@@ -5,8 +5,7 @@ import {
   haversine, FixTracker, won, clock,
 } from "../meter.js";
 import { demoSpeed, DEMO_PERIOD } from "../sim.js";
-import { strideHz, ampFor, pose } from "../horse.js";
-import { layout, GLYPHS } from "../lcd.js";
+import { strideHz, pose, legPath, framePaths, frameAt, FRAMES, HIPS } from "../horse.js";
 
 const cfg = sanitizeConfig(SEOUL_DEFAULTS);
 const at = (h, m = 0) => new Date(2026, 9, 28, h, m, 0); // local time; the date does not matter
@@ -185,7 +184,6 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a * 1664525 + 10139
 {
   assert.strictEqual(strideHz(0), 0);
   assert.strictEqual(strideHz(0.4), 0, "creeping below 0.5 km/h counts as stopped");
-  assert.strictEqual(ampFor(0), 0);
   let prev = 0;
   for (const kmh of [1, 5, 10, 20, 30, 50, 70]) {
     const hz = strideHz(kmh);
@@ -193,11 +191,9 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a * 1664525 + 10139
     prev = hz;
   }
   assert.ok(strideHz(300) <= 5, "stride rate is capped");
-  assert.ok(ampFor(50) > ampFor(5) && ampFor(500) <= 1, "swing grows with speed, capped at 1");
 
   const still = pose(0.37, 0);
   const z = (v) => v + 0; // -0 and 0 are the same standing pose
-  assert.deepStrictEqual([z(still.bob), z(still.head), z(still.tail)], [0, 0, 0]);
   for (const k of ["rl", "rr", "fl", "fr"]) assert.deepStrictEqual({ thigh: z(still[k].thigh), shin: z(still[k].shin) }, { thigh: 0, shin: 0 }, `${k} stands straight at amp 0`);
 
   let thighMax = 0, differs = false;
@@ -209,24 +205,32 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a * 1664525 + 10139
       thighMax = Math.max(thighMax, Math.abs(a[k].thigh));
       assert.ok(a[k].shin <= 0 && a[k].shin >= -62.0001, "knees only fold backwards, within limits");
     }
-    assert.ok(a.bob <= 0 && a.bob >= -2.4001, "body only rises");
     if (Math.abs(a.rl.thigh - a.fl.thigh) > 5) differs = true;
   }
   assert.ok(thighMax > 30 && thighMax <= 40.0001, `legs swing about 30-40 degrees (max ${thighMax.toFixed(1)})`);
   assert.ok(differs, "front and hind legs are out of phase");
 }
 
-/* ---- LCD digits ---- */
+/* ---- horse legs are fixed "segments" that light up one set at a time ---- */
 {
-  const ch = (cells) => cells.map((c) => c.ch + (c.extra || "")).join("|");
-  assert.strictEqual(ch(layout("12.5", 4)), " |1|2.|5");
-  assert.strictEqual(ch(layout("02:10", 5)), " |0|2:|1|0");
-  assert.strictEqual(ch(layout("0", 3)), " | |0");
-  assert.strictEqual(layout("1234567", 6), null, "too long for the display");
-  assert.strictEqual(GLYPHS[8], "abcdefg");
-  assert.strictEqual(GLYPHS[1], "bc");
-  assert.strictEqual(GLYPHS[" "], "");
-  for (const d of "0123456789") assert.ok(GLYPHS[d].length >= 2, `digit ${d} has segments`);
+  assert.strictEqual(legPath([38, 37], 0, 0), "M38.0 37.0 L38.0 52.0 L38.0 69.0 L42.5 69.0", "a straight leg: hip, knee, foot, hoof");
+  const fwd = legPath([38, 37], 30, 0);
+  assert.ok(parseFloat(fwd.split(" L")[1].split(" ")[0]) > 38, "a positive thigh angle swings the knee forward (+x)");
+
+  assert.strictEqual(FRAMES, 4);
+  const sets = [...Array(FRAMES).keys()].map((i) => framePaths(i));
+  const stand = framePaths("stand");
+  for (const s of [...sets, stand]) assert.strictEqual(s.length, 4, "four legs per set");
+  const keys = new Set([...sets, stand].map((s) => s.join("|")));
+  assert.strictEqual(keys.size, FRAMES + 1, "every running pose and the standing pose are all different");
+  assert.ok(stand.every((d, i) => d.startsWith(`M${HIPS[["rl", "rr", "fl", "fr"][i]][0].toFixed(1)} 37.0 L`)), "legs hang from the hips");
+  for (const s of [...sets, stand]) for (const d of s) {
+    const ys = [...d.matchAll(/(-?\d+\.\d) (-?\d+\.\d)/g)].map((m) => parseFloat(m[2]));
+    assert.ok(Math.max(...ys) <= 70 && Math.min(...ys) >= 37, "every leg stays inside the 70-unit-high icon, below the hips");
+  }
+
+  // the lit set advances with the phase: 0,1,2,3,0,... and wraps (also for negative phases)
+  assert.deepStrictEqual([0, 0.26, 0.51, 0.76, 1.01, -0.1].map(frameAt), [0, 1, 2, 3, 0, 3]);
 }
 
 /* ---- formatting ---- */

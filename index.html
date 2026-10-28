@@ -17,65 +17,56 @@
 <body>
   <main id="app" data-state="idle">
 
-    <section class="device" aria-label="택시 미터기">
-      <div class="strip">
-        <span class="brand">TAXI·SIM</span>
-        <span class="rec">RECORDS <b id="recCount">0</b></span>
-        <span class="model">Sim-1</span>
-        <span class="faretag">FARE</span>
-      </div>
-
+    <section class="meter" aria-label="택시 미터기">
       <div class="screen">
-        <ul class="lamps" aria-hidden="true">
-          <li data-lamp="vacant"><i>◀</i>VACANT<sup>1</sup></li>
-          <li data-lamp="hired"><i>◀</i>HIRED<sup>2</sup></li>
-          <li data-lamp="night"><i>◀</i>NIGHT<sup>3</sup></li>
-          <li data-lamp="stop"><i>◀</i>STOP<sup>7</sup></li>
-        </ul>
-
-        <div id="lcdFare" class="lcd xl" data-label="요금(원)"></div>
-
-        <div class="smallrow">
-          <div class="cap"><div id="lcdClock" class="lcd s"></div><em id="ampm">AM</em></div>
-          <div class="cap"><div id="lcdTime" class="lcd s"></div><em>TIME</em></div>
+        <div class="top">
+          <span id="gpsDot" class="gpsdot" title="GPS 상태"></span>
+          <span class="brand">TAXI SIM+</span>
+          <span id="elapsed" class="blue" title="경과 시간">00:00</span>
+          <span class="spd"><b id="speed">0.0</b><small>Km/h</small></span>
         </div>
 
-        <div class="wide">
-          <div class="cap"><div id="lcdDist" class="lcd m"></div><em>DIST km</em></div>
-          <svg id="horse" class="horse" viewBox="0 0 120 70" role="img" aria-label="달리는 말">
-            <g class="hs">
-              <g class="far">
-                <g transform="translate(46 37)"><g data-j="rl-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="rl-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
-                <g transform="translate(68 37)"><g data-j="fl-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="fl-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
-              </g>
-              <g data-j="body">
+        <div class="mid">
+          <div class="left">
+            <svg id="horse" class="horse" viewBox="0 0 120 70" role="img" aria-label="달리는 말">
+              <g class="body">
                 <path d="M32 27 Q32 21 40 21 L68 21 Q78 21 80 28 Q81 36 72 38 L40 38 Q32 38 32 27 Z"/>
                 <path d="M71 22 L84 9"/>
                 <path d="M79 31 L92 17"/>
                 <path d="M73 20 L72 15 M77 17 L75 11 M81 13 L79 7" class="mane"/>
-                <g data-j="tail"><path d="M32 26 Q20 26 14 38 Q11 45 15 52"/></g>
-                <g data-j="head"><path d="M84 9 L93 5 L109 17 Q110 22 105 22 L97 18 L92 17"/><path d="M87 7 L88 0 L92 5"/><circle cx="95" cy="11" r="1.1" class="eye"/></g>
-                <g transform="translate(38 37)"><g data-j="rr-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="rr-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
-                <g transform="translate(74 37)"><g data-j="fr-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="fr-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
+                <path d="M32 26 Q20 26 14 38 Q11 45 15 52"/>
+                <path d="M84 9 L93 5 L109 17 Q110 22 105 22 L97 18 L92 17"/>
+                <path d="M87 7 L88 0 L92 5"/>
+                <circle cx="95" cy="11" r="1.2" class="eye"/>
               </g>
-            </g>
-          </svg>
-          <div class="cap"><div id="lcdSpeed" class="lcd m"></div><em>km/h</em></div>
+              <g id="legs"></g>
+            </svg>
+            <div class="pct"><b id="pct">0</b>%</div>
+            <div id="remain" class="remain" title="다음 요금까지 남은 거리(m)">0</div>
+          </div>
+
+          <div class="right">
+            <div class="faretop"><span id="fare" class="fare" data-value="0">0</span></div>
+            <button id="extraBtn" class="extra" title="통행료·호출료"><b id="extraNum">0</b></button>
+          </div>
+
+          <div class="side"><span class="won">원<small>WON</small></span><span class="plus">추가</span></div>
         </div>
 
-        <ul id="ann" class="ann" aria-live="polite">
-          <li data-ann="base">BASE</li><li data-ann="dist">DIST</li><li data-ann="time">TIME</li><li data-ann="out">OUT</li>
-        </ul>
+        <div class="bottom">
+          <span id="state" class="badge">빈차</span>
+          <ul id="ann" class="ann" aria-live="polite">
+            <li data-ann="base">기본거리</li><li data-ann="dist">거리</li><li data-ann="time">시간</li><li data-ann="night">심야</li><li data-ann="out">시계외</li>
+          </ul>
+        </div>
       </div>
 
       <div class="keys">
-        <button class="key k-vacant" id="kVacant"><b>빈차</b><i>VACANT</i></button>
-        <button class="key k-hired" id="kHired"><b>주행</b><i>HIRED</i></button>
-        <button class="key k-night" id="kNight"><b>심야</b><i>NIGHT</i></button>
-        <button class="key k-toll" id="kToll"><b>통행</b><i>TOLL</i></button>
-        <button class="key k-call" id="kCall"><b>호출</b><i>CALL</i></button>
-        <button class="key k-sur" id="kSur"><b>시계외</b><i>SUR</i></button>
-        <button class="key k-stop" id="kStop"><b>지불</b><i>STOP</i></button>
+        <button class="key k-vacant" id="kVacant">빈차</button>
+        <button class="key k-hired" id="kHired">주행</button>
+        <button class="key k-sur" id="kSur">할증</button>
+        <button class="key k-extra" id="kExtra">추가</button>
+        <button class="key k-stop" id="kStop">지불</button>
       </div>
     </section>
 
@@ -85,7 +76,7 @@
     <div class="pills">
       <button id="btnDemo" class="pill">▶ 데모 주행</button>
       <button id="btnSettings" class="pill">⚙ 요금 설정</button>
-      <button id="btnHistory" class="pill">🧾 운행 기록</button>
+      <button id="btnHistory" class="pill">🧾 운행 기록 <small id="recCount">0</small></button>
     </div>
 
     <p class="notice">참고용 <b>요금 시뮬레이터</b>입니다. 실제 택시 요금과 다를 수 있고, 법정 택시미터기를 대체하지 않습니다.</p>

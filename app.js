@@ -2,7 +2,6 @@ import {
   SEOUL_DEFAULTS, sanitizeConfig, nightPct, thresholdMps, startTrip, advance, breakdown, FixTracker, won, clock,
 } from "./meter.js";
 import { demoSpeed } from "./sim.js";
-import { Lcd } from "./lcd.js";
 import { Horse } from "./horse.js";
 
 const $ = (id) => document.getElementById(id);
@@ -20,13 +19,6 @@ let history = Array.isArray(store.get(KEY_HIST)) ? store.get(KEY_HIST) : [];
 const extras = { tolls: 0, callFee: 0 };
 let outside = false; // out-of-city surcharge, switched with the SUR key
 
-const lcd = {
-  fare: new Lcd($("lcdFare"), 6),
-  clock: new Lcd($("lcdClock"), 4),
-  time: new Lcd($("lcdTime"), 5),
-  dist: new Lcd($("lcdDist"), 4),
-  speed: new Lcd($("lcdSpeed"), 3),
-};
 const horse = new Horse($("horse"));
 
 let trip = null;
@@ -181,6 +173,16 @@ function gpsLine() {
   }
 }
 
+// The fare digits are as big as the column allows: shrink them when the number gets longer.
+function fitFare() {
+  const el = $("fare");
+  const room = el.parentElement.clientWidth || 180;
+  const digits = Math.max(4, el.textContent.length);
+  el.style.fontSize = `${Math.max(34, Math.min(84, Math.floor(room / (digits * 0.72))))}px`;
+}
+const setFare = (n) => { $("fare").textContent = String(n); $("fare").dataset.value = String(n); fitFare(); };
+window.addEventListener("resize", fitFare);
+
 function render() {
   const running = !!trip;
   const b = running ? breakdown(trip) : null;
@@ -188,50 +190,52 @@ function render() {
   const d = running ? nowDate() : new Date();
   const pct = nightPct(cfg, d);
 
-  // LCD digits
-  lcd.fare.set(String(running ? b.total : 0));
-  const h = d.getHours();
-  lcd.clock.set(`${String(h % 12 || 12).padStart(2, " ")}:${String(d.getMinutes()).padStart(2, "0")}`);
-  $("ampm").textContent = h < 12 ? "AM" : "PM";
+  // numbers on the screen
+  setFare(running ? b.total : 0);
+  $("speed").textContent = kmh.toFixed(1);
   const sec = running ? Math.floor(trip.elapsed) : 0;
-  lcd.time.set(`${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`);
-  lcd.dist.set((running ? trip.distance / 1000 : 0).toFixed(2));
-  lcd.speed.set(String(Math.round(kmh)));
+  $("elapsed").textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  const shownPct = (running ? (pct > 0 ? pct : 0) : 0) + (outside ? cfg.outsidePct : 0);
+  $("pct").textContent = String(shownPct);
+  const remain = !running ? cfg.baseDistance : trip.baseLeft > 0 ? trip.baseLeft : Math.max(0, cfg.unitDistance - trip.accum);
+  $("remain").textContent = String(Math.round(remain));
+  const extra = running ? trip.tolls + trip.callFee : extras.tolls + extras.callFee;
+  $("extraNum").textContent = String(extra);
+  $("extrasSum").textContent = `${won(extra)}원`;
+  $("recCount").textContent = String(history.length);
   horse.setSpeed(kmh);
 
-  // lamps on the left of the display
+  // state badge (bottom left): 빈차 / 주행 / 정차 / 데모
   const stopped = running && trip.speed < 0.5;
-  const lamps = { vacant: !running, hired: running, night: running && pct > 0, stop: stopped };
-  document.querySelectorAll(".lamps li").forEach((li) => li.classList.toggle("on", !!lamps[li.dataset.lamp]));
+  const badge = $("state");
+  badge.className = "badge" + (running ? (source === "demo" ? " demo" : stopped ? " stop" : " run") : "");
+  badge.textContent = running ? (source === "demo" ? (stopped ? "데모·정차" : "데모") : stopped ? "정차" : "주행") : "빈차";
 
-  // annunciators under the digits
+  // what is being counted right now
   const ann = $("ann");
-  const set = (k, on, text) => {
-    const li = ann.querySelector(`[data-ann="${k}"]`);
-    li.classList.toggle("on", !!on);
-    if (text) li.textContent = text;
-  };
-  set("base", running && trip.mode === "base", running && trip.mode === "base" ? `BASE ${Math.round(trip.baseLeft)}m` : "BASE");
-  set("dist", running && trip.mode === "distance");
-  set("time", running && trip.mode === "time");
-  set("out", outside, outside ? `OUT +${cfg.outsidePct}%` : "OUT");
+  const lit = (k, on) => ann.querySelector(`[data-ann="${k}"]`).classList.toggle("on", !!on);
+  lit("base", running && trip.mode === "base");
+  lit("dist", running && trip.mode === "distance");
+  lit("time", running && trip.mode === "time");
+  lit("night", running && pct > 0);
+  lit("out", outside);
+
+  // GPS dot
+  const g = gpsLine();
+  const dot = $("gpsDot");
+  dot.className = "gpsdot" + (running && source === "demo" ? " demo" : g.cls ? " " + g.cls.replace("good", "good") : "");
+  $("gps").textContent = g.text;
+  $("gps").className = "gps " + g.cls;
 
   // keys
-  const lit = (id, on) => $(id).classList.toggle("lit", !!on);
-  lit("kVacant", !running); lit("kHired", running); lit("kNight", running && pct > 0); lit("kSur", outside);
   $("kHired").disabled = running;
   $("kStop").disabled = !running;
+  $("kVacant").classList.toggle("lit", !running);
+  $("kHired").classList.toggle("lit", running);
+  $("kSur").classList.toggle("lit", outside);
   $("btnDemo").disabled = running;
   $("btnSettings").disabled = running;
   $("app").dataset.state = running ? (source === "demo" ? "demo" : "run") : "idle";
-
-  $("recCount").textContent = String(history.length);
-  const ex = running ? trip.tolls + trip.callFee : extras.tolls + extras.callFee;
-  $("extrasSum").textContent = `${won(ex)}원`;
-
-  const g = gpsLine();
-  $("gps").textContent = g.text;
-  $("gps").className = "gps " + g.cls;
 }
 
 /* ---------- dialogs ---------- */
@@ -335,25 +339,21 @@ $("kVacant").addEventListener("click", () => {
   if (trip) {
     if (confirm("운행을 취소할까요? 이 운행은 기록되지 않아요.")) abort("운행을 취소했어요.");
   } else {
-    say("빈차 상태예요. 'HIRED(주행)'을 누르면 미터가 시작돼요.");
+    say("빈차 상태예요. '주행'을 누르면 미터가 시작돼요.");
   }
 });
-$("kNight").addEventListener("click", () => {
-  const p = nightPct(cfg, nowDate());
-  say(p > 0 ? `심야 할증 +${p}% 적용 중이에요 (시각에 따라 자동).` : "지금은 심야 할증 시간이 아니에요. 시간대는 '요금 설정'에서 바꿀 수 있어요.");
-});
-$("kToll").addEventListener("click", () => openExtras("inToll"));
-$("kCall").addEventListener("click", () => openExtras("inCall"));
 $("kSur").addEventListener("click", () => {
   outside = !outside;
   if (trip) trip.outside = outside;
-  say(outside ? `시계외 할증 +${cfg.outsidePct}%를 적용했어요.` : "시계외 할증을 껐어요.");
+  say(outside ? `시계외 할증 +${cfg.outsidePct}%를 적용했어요. (심야 할증은 시각에 따라 자동 적용)` : "시계외 할증을 껐어요.");
   render();
 });
+$("kExtra").addEventListener("click", () => openExtras("inToll"));
+$("extraBtn").addEventListener("click", () => openExtras("inToll"));
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 // Hooks for automated tests.
-window.__taxi = { get trip() { return trip; }, get cfg() { return cfg; }, get gps() { return gps; }, tick, get history() { return history; }, horse, lcd };
+window.__taxi = { get trip() { return trip; }, get cfg() { return cfg; }, get gps() { return gps; }, tick, get history() { return history; }, horse };
 
 render();

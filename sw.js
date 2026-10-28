@@ -1,7 +1,7 @@
 // Offline support: the app shell is network-first (so updates show up) and falls back to the cache.
-const CACHE = "taxi-meter-v2";
+const CACHE = "taxi-meter-v3";
 const SHELL = [
-  "./", "index.html", "style.css", "app.js", "meter.js", "sim.js", "lcd.js", "horse.js",
+  "./", "index.html", "style.css", "app.js", "meter.js", "sim.js", "horse.js",
   "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-180.png",
 ];
 
