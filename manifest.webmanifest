@@ -1,0 +1,16 @@
+{
+  "name": "택시 미터기 시뮬레이터",
+  "short_name": "택시 미터기",
+  "description": "GPS 거리와 시간으로 택시 요금을 계산해 보는 참고용 시뮬레이터",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d10",
+  "theme_color": "#0d0d10",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

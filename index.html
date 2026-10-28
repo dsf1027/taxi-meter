@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0d0d10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="택시 미터기">
+  <title>택시 미터기 시뮬레이터</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app" data-state="idle">
+
+    <section class="device" aria-label="택시 미터기">
+      <div class="strip">
+        <span class="brand">TAXI·SIM</span>
+        <span class="rec">RECORDS <b id="recCount">0</b></span>
+        <span class="model">Sim-1</span>
+        <span class="faretag">FARE</span>
+      </div>
+
+      <div class="screen">
+        <ul class="lamps" aria-hidden="true">
+          <li data-lamp="vacant"><i>◀</i>VACANT<sup>1</sup></li>
+          <li data-lamp="hired"><i>◀</i>HIRED<sup>2</sup></li>
+          <li data-lamp="night"><i>◀</i>NIGHT<sup>3</sup></li>
+          <li data-lamp="stop"><i>◀</i>STOP<sup>7</sup></li>
+        </ul>
+
+        <div id="lcdFare" class="lcd xl" data-label="요금(원)"></div>
+
+        <div class="smallrow">
+          <div class="cap"><div id="lcdClock" class="lcd s"></div><em id="ampm">AM</em></div>
+          <div class="cap"><div id="lcdTime" class="lcd s"></div><em>TIME</em></div>
+        </div>
+
+        <div class="wide">
+          <div class="cap"><div id="lcdDist" class="lcd m"></div><em>DIST km</em></div>
+          <svg id="horse" class="horse" viewBox="0 0 120 70" role="img" aria-label="달리는 말">
+            <g class="hs">
+              <g class="far">
+                <g transform="translate(46 37)"><g data-j="rl-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="rl-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
+                <g transform="translate(68 37)"><g data-j="fl-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="fl-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
+              </g>
+              <g data-j="body">
+                <path d="M32 27 Q32 21 40 21 L68 21 Q78 21 80 28 Q81 36 72 38 L40 38 Q32 38 32 27 Z"/>
+                <path d="M71 22 L84 9"/>
+                <path d="M79 31 L92 17"/>
+                <path d="M73 20 L72 15 M77 17 L75 11 M81 13 L79 7" class="mane"/>
+                <g data-j="tail"><path d="M32 26 Q20 26 14 38 Q11 45 15 52"/></g>
+                <g data-j="head"><path d="M84 9 L93 5 L109 17 Q110 22 105 22 L97 18 L92 17"/><path d="M87 7 L88 0 L92 5"/><circle cx="95" cy="11" r="1.1" class="eye"/></g>
+                <g transform="translate(38 37)"><g data-j="rr-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="rr-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
+                <g transform="translate(74 37)"><g data-j="fr-thigh"><path d="M0 0 L0 15"/><g transform="translate(0 15)"><g data-j="fr-shin"><path d="M0 0 L0 17 M0 17 L4.5 17"/></g></g></g></g>
+              </g>
+            </g>
+          </svg>
+          <div class="cap"><div id="lcdSpeed" class="lcd m"></div><em>km/h</em></div>
+        </div>
+
+        <ul id="ann" class="ann" aria-live="polite">
+          <li data-ann="base">BASE</li><li data-ann="dist">DIST</li><li data-ann="time">TIME</li><li data-ann="out">OUT</li>
+        </ul>
+      </div>
+
+      <div class="keys">
+        <button class="key k-vacant" id="kVacant"><b>빈차</b><i>VACANT</i></button>
+        <button class="key k-hired" id="kHired"><b>주행</b><i>HIRED</i></button>
+        <button class="key k-night" id="kNight"><b>심야</b><i>NIGHT</i></button>
+        <button class="key k-toll" id="kToll"><b>통행</b><i>TOLL</i></button>
+        <button class="key k-call" id="kCall"><b>호출</b><i>CALL</i></button>
+        <button class="key k-sur" id="kSur"><b>시계외</b><i>SUR</i></button>
+        <button class="key k-stop" id="kStop"><b>지불</b><i>STOP</i></button>
+      </div>
+    </section>
+
+    <p id="gps" class="gps">대기 중</p>
+    <p id="msg" class="msg" role="status"></p>
+
+    <div class="pills">
+      <button id="btnDemo" class="pill">▶ 데모 주행</button>
+      <button id="btnSettings" class="pill">⚙ 요금 설정</button>
+      <button id="btnHistory" class="pill">🧾 운행 기록</button>
+    </div>
+
+    <p class="notice">참고용 <b>요금 시뮬레이터</b>입니다. 실제 택시 요금과 다를 수 있고, 법정 택시미터기를 대체하지 않습니다.</p>
+    <p id="extrasLine" class="extras-line">통행료·호출료 <b id="extrasSum">0원</b></p>
+  </main>
+
+  <!-- 영수증 -->
+  <dialog id="dlgReceipt">
+    <form method="dialog">
+      <h2>운행 종료</h2>
+      <div id="receiptBody" class="receipt"></div>
+      <p class="fine">참고용 금액입니다. 기록에 저장되었습니다.</p>
+      <menu><button class="primary">확인</button></menu>
+    </form>
+  </dialog>
+
+  <!-- 통행료/호출료 -->
+  <dialog id="dlgExtras">
+    <form method="dialog" id="formExtras">
+      <h2>추가 요금</h2>
+      <label>통행료 (원)<input id="inToll" type="number" inputmode="numeric" min="0" step="1" value="0"></label>
+      <label>호출료 (원)<input id="inCall" type="number" inputmode="numeric" min="0" step="1" value="0"></label>
+      <div class="quick">
+        <button type="button" data-add="1000">통행료 +1,000</button>
+        <button type="button" data-add="500">통행료 +500</button>
+      </div>
+      <menu><button value="cancel" class="secondary">취소</button><button value="ok" class="primary">적용</button></menu>
+    </form>
+  </dialog>
+
+  <!-- 설정 -->
+  <dialog id="dlgSettings">
+    <form method="dialog" id="formSettings">
+      <h2>요금 설정</h2>
+      <p class="fine">기본값은 <b>2023년 2월 이후 서울시 중형택시</b> 요금(2차 자료로 확인)입니다. 지금 요금과 다를 수 있으니 확인 후 고쳐 쓰세요.</p>
+      <div class="grid">
+        <label>기본요금 (원)<input name="baseFare" type="number" inputmode="numeric" min="0"></label>
+        <label>기본거리 (m)<input name="baseDistance" type="number" inputmode="numeric" min="0"></label>
+        <label>단위 요금 (원)<input name="unitFare" type="number" inputmode="numeric" min="1"></label>
+        <label>거리 단위 (m)<input name="unitDistance" type="number" inputmode="numeric" min="1"></label>
+        <label>시간 단위 (초)<input name="unitTime" type="number" inputmode="numeric" min="1"></label>
+        <label>시계외 할증 (%)<input name="outsidePct" type="number" inputmode="numeric" min="0"></label>
+        <label>반올림 단위 (원)<input name="roundTo" type="number" inputmode="numeric" min="1"></label>
+        <label>시간요금 기준 속도<output id="thrOut">-</output></label>
+      </div>
+      <h3>심야 할증</h3>
+      <div id="nightRows" class="night"></div>
+      <menu>
+        <button type="button" id="btnReset" class="secondary">서울 기본값</button>
+        <button value="cancel" class="secondary">취소</button>
+        <button value="ok" class="primary">저장</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- 기록 -->
+  <dialog id="dlgHistory">
+    <form method="dialog">
+      <h2>운행 기록</h2>
+      <div id="historyBody" class="history"></div>
+      <menu>
+        <button type="button" id="btnClear" class="secondary">전체 삭제</button>
+        <button class="primary">닫기</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- 데모 -->
+  <dialog id="dlgDemo">
+    <form method="dialog" id="formDemo">
+      <h2>데모 주행</h2>
+      <p class="fine">GPS 없이 가상의 도시 주행(정차 포함)으로 미터기를 체험합니다.</p>
+      <label>배속
+        <select id="demoSpeed"><option value="1">×1 (실제 속도)</option><option value="5">×5</option><option value="20" selected>×20</option></select>
+      </label>
+      <label>시작 시각
+        <select id="demoClock">
+          <option value="now">지금</option>
+          <option value="22:30">22:30 (심야 20%)</option>
+          <option value="23:30">23:30 (심야 40%)</option>
+          <option value="02:30">02:30 (심야 20%)</option>
+        </select>
+      </label>
+      <menu><button value="cancel" class="secondary">취소</button><button value="ok" class="primary">시작</button></menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

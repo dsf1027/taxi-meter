@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd43b"/>
+      <stop offset="1" stop-color="#f59f00"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#g)"/>
+  <!-- roof sign + meter display -->
+  <rect x="196" y="92" width="120" height="52" rx="12" fill="#111"/>
+  <text x="256" y="130" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="34" fill="#ffd43b">TAXI</text>
+  <rect x="96" y="176" width="320" height="196" rx="34" fill="#111"/>
+  <rect x="124" y="204" width="264" height="84" rx="14" fill="#050506"/>
+  <text x="372" y="270" text-anchor="end" font-family="'Courier New', monospace" font-weight="700" font-size="64" fill="#5cf0ff">4,800</text>
+  <circle cx="160" cy="336" r="14" fill="#35d07f"/>
+  <circle cx="204" cy="336" r="14" fill="#ffd43b"/>
+  <rect x="268" y="322" width="120" height="28" rx="14" fill="#2a2a33"/>
+</svg>
